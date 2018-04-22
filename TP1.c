@@ -34,15 +34,13 @@ Autor: Breno Claudio de Sena Pimenta
 /* >> TIPOs DE DADOS: ------------------------------------------------------------------------*/
 
 typedef struct tipo_imagem_pgm {
-    int altura;
-    int largura;
-    char nivel_intensidade;
+    int altura, largura, nivel_intensidade;
     char **imagem;
 }tipo_imagem_pgm;
 
 typedef struct tipo_semente {
     int linha, coluna;
-    int R, G, B;
+    char *cor;
 }tipo_semente;
 
 /* >> FUNCOES: -------------------------------------------------------------------------------*/
@@ -84,6 +82,10 @@ int main (int argc, char **argv){
     tipo_semente semente;
 
     abrir_arquivos (argv, arquivo_imagem, arquivo_semente);
+
+    fscanf(arquivo_imagem, "P2 %d %d %d", &imagem_pgm.largura, &imagem_pgm.altura, &imagem_pgm.nivel_intensidade);
+    fscanf(arquivo_imagem, "P2 %d %d %d", &imagem_pgm.largura, &imagem_pgm.altura, &imagem_pgm.nivel_intensidade);
+
 
     fclose (arquivo_imagem);
     fclose (arquivo_semente);
