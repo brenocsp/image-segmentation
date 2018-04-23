@@ -23,25 +23,35 @@ Autor: Breno Claudio de Sena Pimenta
 >> Funcionamento:
 
 --------------------------------------------------------------------------------------------- */
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 /* >> CONSTANTES: ----------------------------------------------------------------------------*/
 
 
 /* >> TIPOs DE DADOS: ------------------------------------------------------------------------*/
+typedef struct tipo_pixel {
+    int cor;
+    bool verificador;
+}tipo_pixel;
 
 typedef struct tipo_imagem_pgm {
-    int altura, largura, nivel_intensidade;
-    char **imagem;
+    int altura, largura, nivel;
+    struct tipo_pixel **imagem;
 }tipo_imagem_pgm;
 
-typedef struct tipo_semente {
+typedef struct tipo_semente_pai {
+    int r, g, b, cinza, linha_inicial, coluna_inicial;
+    struct tipo_semente_filho *filho;
+}tipo_semente_pai;
+
+typedef struct tipo_semente_filho {
     int linha, coluna;
-    char *cor;
-}tipo_semente;
+    struct tipo_semente_pai *pai;
+    struct tipo_semente_filho *brodi;
+}tipo_semente_filho;
 
 /* >> FUNCOES: -------------------------------------------------------------------------------*/
 
@@ -78,17 +88,19 @@ int main (int argc, char **argv){
     FILE *arquivo_imagem = NULL;
     FILE *arquivo_semente = NULL;
 
-    tipo_imagem_pgm imagem_pgm;
-    tipo_semente semente;
-
     abrir_arquivos (argv, arquivo_imagem, arquivo_semente);
 
-    fscanf(arquivo_imagem, "P2 %d %d %d", &imagem_pgm.largura, &imagem_pgm.altura, &imagem_pgm.nivel_intensidade);
-    fscanf(arquivo_imagem, "P2 %d %d %d", &imagem_pgm.largura, &imagem_pgm.altura, &imagem_pgm.nivel_intensidade);
+    tipo_imagem_pgm *imagem_entrada = (tipo_imagem_pgm*)malloc(sizeof(tipo_imagem_pgm));
+    imagem_entrada->primeiro = NULL;
+
+    fscanf(arquivo_imagem, "P2\n%d\n%d\n%d", &imagem_entrada->largura, &imagem_entrada->altura, &imagem_entrada->nivel);
+
+    //fscanf(arquivo_imagem, "P2 %d %d %d", &imagem_pgm.largura, &imagem_pgm.altura, &imagem_pgm.nivel_intensidade);
+    //fscanf(arquivo_imagem, "P2 %d %d %d", &imagem_pgm.largura, &imagem_pgm.altura, &imagem_pgm.nivel_intensidade);
 
 
-    fclose (arquivo_imagem);
-    fclose (arquivo_semente);
+    //fclose (arquivo_imagem);
+    //fclose (arquivo_semente);
 
 
     return EXIT_SUCCESS;
