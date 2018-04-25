@@ -93,6 +93,8 @@ int main (int argc, char **argv){
     tipo_imagem_pgm *imagem_entrada = (tipo_imagem_pgm*)malloc(sizeof(tipo_imagem_pgm));
     imagem_entrada->primeiro = NULL;
 
+    //gfgfuhg
+
     fscanf(arquivo_imagem, "P2\n%d\n%d\n%d", &imagem_entrada->largura, &imagem_entrada->altura, &imagem_entrada->nivel);
 
     //fscanf(arquivo_imagem, "P2 %d %d %d", &imagem_pgm.largura, &imagem_pgm.altura, &imagem_pgm.nivel_intensidade);
