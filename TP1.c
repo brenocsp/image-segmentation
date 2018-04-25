@@ -35,7 +35,7 @@ Autor: Breno Claudio de Sena Pimenta
 typedef struct tipo_pixel {
     int cor;
     bool verificador;
-}tipo_pixel;//teste
+}tipo_pixel;
 
 typedef struct tipo_imagem_pgm {
     int altura, largura, nivel;
