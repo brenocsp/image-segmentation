@@ -38,8 +38,8 @@ typedef struct tipo_pixel {
 }tipo_pixel;
 
 typedef struct tipo_imagem_pgm {
-    int altura, largura, nivel;
-    struct tipo_pixel **imagem;
+    int linhas, colunas, nivel;
+    struct tipo_pixel **pixels;
 }tipo_imagem_pgm;
 
 typedef struct tipo_semente_pai {
@@ -56,19 +56,19 @@ typedef struct tipo_semente_filho {
 /* >> FUNCOES: -------------------------------------------------------------------------------*/
 
 /* Funcao para abrir os arquivos */
-void abrir_arquivos (char **argv, FILE *arquivo_imagem, FILE *arquivo_semente){
+void abrir_arquivos (char **argv, FILE **arquivo_imagem, FILE **arquivo_semente){
     int tamanho_nome = strlen(argv[1]);
     char arquivo_temp[tamanho_nome];
 
     sprintf(arquivo_temp, "%s.pgm", argv[1]);
-    arquivo_imagem = fopen(arquivo_temp, "r");
+    *arquivo_imagem = fopen(arquivo_temp, "r");
     if (!arquivo_imagem) {
         printf("Arquivo %s nao encontrado", arquivo_temp);
         exit(EXIT_FAILURE);
     }
 
     sprintf(arquivo_temp, "%s.txt", argv[1]);
-    arquivo_semente = fopen(arquivo_temp, "r");
+    *arquivo_semente = fopen(arquivo_temp, "r");
     if (!arquivo_semente) {
         printf("Arquivo %s nao encontrado", arquivo_temp);
         exit(EXIT_FAILURE);
@@ -76,10 +76,23 @@ void abrir_arquivos (char **argv, FILE *arquivo_imagem, FILE *arquivo_semente){
 }
 /*<<< FIM ABRIR ARQUIVOS >>>*/
 
+void armazenar_imagem_entrada (FILE *arquivo, struct tipo_imagem_pgm *imagem){
+  fscanf(arquivo, "P2\n%d\n%d\n%d\n", &imagem->colunas, &imagem->linhas, &imagem->nivel);
+  printf("P2\n%d %d\n%d\n", imagem->colunas, imagem->linhas, imagem->nivel);
+  imagem->pixels = (tipo_pixel**)calloc(imagem->linhas, sizeof(tipo_pixel*));
+  for (int i = 0; i < imagem->linhas; i++) {
+    imagem->pixels[i] = (tipo_pixel*) calloc(imagem->colunas, sizeof(tipo_pixel));
+    for (int j = 0; j < imagem->colunas; j++) {
+      fscanf(arquivo, "%d ", &imagem->pixels[i][j].cor);
+    }
+      fscanf(arquivo, "\n");
+   }
+}
+
 
 /* >> PROGRAMA PRINCIPAL: -------------------------------------------------------------------*/
 
-int main (int argc, char **argv){
+int main (int argc, char **argv) {
     if (argc == 1) {
         printf("Nenhum arquivo de imagem foi passado\n");
         exit(EXIT_FAILURE);
@@ -87,20 +100,13 @@ int main (int argc, char **argv){
 
     FILE *arquivo_imagem = NULL;
     FILE *arquivo_semente = NULL;
-
-    abrir_arquivos (argv, arquivo_imagem, arquivo_semente);
-
     tipo_imagem_pgm *imagem_entrada = (tipo_imagem_pgm*)malloc(sizeof(tipo_imagem_pgm));
-    imagem_entrada->primeiro = NULL;
 
-    fscanf(arquivo_imagem, "P2\n%d\n%d\n%d", &imagem_entrada->largura, &imagem_entrada->altura, &imagem_entrada->nivel);
+    abrir_arquivos (argv, &arquivo_imagem, &arquivo_semente);
+    armazenar_imagem_entrada(arquivo_imagem, imagem_entrada);
 
-    //fscanf(arquivo_imagem, "P2 %d %d %d", &imagem_pgm.largura, &imagem_pgm.altura, &imagem_pgm.nivel_intensidade);
-    //fscanf(arquivo_imagem, "P2 %d %d %d", &imagem_pgm.largura, &imagem_pgm.altura, &imagem_pgm.nivel_intensidade);
-
-
-    //fclose (arquivo_imagem);
-    //fclose (arquivo_semente);
+    fclose (arquivo_imagem);
+    fclose (arquivo_semente);
 
 
     return EXIT_SUCCESS;
