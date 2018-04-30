@@ -54,9 +54,10 @@ typedef struct tipo_imagem_pgm {
 }tipo_imagem_pgm;
 
 typedef struct tipo_semente_pai {
-    int limiar, R, G, B,
+    int limiar, R, G, B, num_filhos,
         linha_inicial, coluna_inicial;
-    struct tipo_semente_filho *filho;
+    struct tipo_semente_filho *primeiro;
+    struct tipo_semente_filho *ultimo;
 }tipo_semente_pai;
 
 typedef struct tipo_semente_filho {
@@ -118,9 +119,8 @@ tipo_semente_pai *armazenar_sementes (FILE *arquivo, int *num_sementes) {
     testar_alocacao (pai, MEMORIA);
 
     fscanf(arquivo, "%d\n", &pai->limiar);
-    for (int i = 0; i < *num_sementes; i++) {
-        fscanf(arquivo, "%d, %d <%d, %d, %d>\n", &pai[i].coluna_inicial, &pai[i].coluna_inicial, &pai[i].R, &pai[i].G, &pai[i].B);
-        pai[i].filho = NULL; //nao tem filho ainda
+    for (int id = 0; id < *num_sementes; id++) {
+        fscanf(arquivo, "%d, %d <%d, %d, %d>\n", &pai[id].coluna_inicial, &pai[id].linha_inicial, &pai[id].R, &pai[id].G, &pai[id].B);
     }
 
     fclose (arquivo);
@@ -131,11 +131,10 @@ tipo_imagem_ppm *criar_matriz_saida (tipo_imagem_pgm *imagem_entrada) {
     tipo_imagem_ppm *imagem_saida = (tipo_imagem_ppm*) malloc(sizeof(tipo_imagem_ppm));
     testar_alocacao (imagem_saida, MEMORIA);
 
-    imagem_saida->pixels = (tipo_pixel_rgb**)calloc(imagem_saida->linhas, sizeof(tipo_pixel_rgb));
-    testar_alocacao (imagem_saida->pixels, MEMORIA);
-
     imagem_saida->linhas = imagem_entrada->linhas;
     imagem_saida->colunas = imagem_entrada->colunas;
+    imagem_saida->pixels = (tipo_pixel_rgb**)calloc(imagem_saida->linhas, sizeof(tipo_pixel_rgb));
+    testar_alocacao (imagem_saida->pixels, MEMORIA);
 
     for (int i = 0; i < imagem_saida->linhas; i++) {
         imagem_saida->pixels[i] = (tipo_pixel_rgb*) calloc(imagem_saida->colunas, sizeof(tipo_pixel_rgb));
@@ -159,71 +158,88 @@ void desalocar_imagem_entrada (tipo_imagem_pgm *imagem) {
     free(imagem);
 }
 
-void desalocar_sementes (tipo_semente_pai *semente_pai, int num_sementes) {
-    for (int i = 0; i < num_sementes; i++)
-        if (semente_pai->filho) free(semente_pai->filho);
-    free (semente_pai);
+void desalocar_imagem_saida (tipo_imagem_ppm *imagem){
+    for (int i = 0; i < imagem->linhas; i++) {
+        free(imagem->pixels[i]);
+    }
+    free(imagem->pixels);
+    free(imagem);
 }
 
-void empilha_semente (tipo_semente_pai *pai, int i, int j) {
-    tipo_semente_filho *novo_filho = (tipo_semente_filho*) malloc(sizeof(tipo_semente_filho));
-    testar_alocacao (novo_filho, MEMORIA);
-    novo_filho->irmao = pai->filho;
-    novo_filho->linha = i;
-    novo_filho->coluna = j;
-    pai->filho = novo_filho;
+void desalocar_sementes (tipo_semente_pai *pai, int num_sementes) {
+    free (pai);
 }
 
-void testar_vizinhos (tipo_imagem_pgm *imagem, tipo_semente_pai *sementes, int i, int j) {
+void enfileirar_semente (tipo_semente_pai *pai, int id, int i, int j) {
+    pai[id].ultimo->irmao = (tipo_semente_filho*) malloc(sizeof(tipo_semente_filho));
+    testar_alocacao (pai[id].ultimo->irmao, MEMORIA);
+    pai[id].num_filhos++;
+    pai[id].ultimo = pai[id].ultimo->irmao;
+    pai[id].ultimo->linha = i;
+    pai[id].ultimo->coluna = j;
+}
+
+void testar_vizinhos (tipo_imagem_pgm *imagem, tipo_semente_pai *pai, int id) {
+    int i = pai[id].primeiro->linha;
+    int j = pai[id].primeiro->coluna;
     int cor_semente = imagem->pixels[i][j].cor;
 
     /* cima */
-    if(i - 1 >= 0 && !imagem->pixels[i-1][j].passei && abs(cor_semente - imagem->pixels[i-1][j].cor) < sementes->limiar) {
+    if(i - 1 > 0 && !imagem->pixels[i-1][j].passei && abs(cor_semente - imagem->pixels[i-1][j].cor) <= pai[id].limiar) {
         imagem->pixels[i-1][j].passei = true;
-        empilha_semente(sementes, i-1, j);
+        enfileirar_semente (pai, id, i-1, j);
     }
 
     /* esquerda */
-    if(j - 1 >= 0 && !imagem->pixels[i][j-1].passei && abs(cor_semente - imagem->pixels[i][j+1].cor) < sementes->limiar) {
+    if(j - 1 > 0 && !imagem->pixels[i][j-1].passei && abs(cor_semente - imagem->pixels[i][j-1].cor) <= pai[id].limiar) {
         imagem->pixels[i][j-1].passei = true;
-        empilha_semente(sementes, i, j-1);
+        enfileirar_semente (pai, id, i, j-1);
     }
 
     /* baixo */
-    if(i + 1 <= imagem->linhas && !imagem->pixels[i][j].passei && abs(cor_semente - imagem->pixels[i+1][j].cor) < sementes->limiar) {
+    if(i + 1 < imagem->linhas && !imagem->pixels[i+1][j].passei && abs(cor_semente - imagem->pixels[i+1][j].cor) <= pai[id].limiar) {
         imagem->pixels[i+1][j].passei = true;
-        empilha_semente(sementes, i+1, j);
+        enfileirar_semente (pai, id, i+1, j);
     }
 
     /* direita */
-    if(j + 1 <= imagem->colunas && !imagem->pixels[i][j].passei && abs(cor_semente - imagem->pixels[i][j+1].cor) < sementes->limiar) {
+    if(j + 1 < imagem->colunas && !imagem->pixels[i][j+1].passei && abs(cor_semente - imagem->pixels[i][j+1].cor) <= pai[id].limiar) {
         imagem->pixels[i][j+1].passei = true;
-        empilha_semente(sementes, i, j+1);
+        enfileirar_semente (pai, id, i, j+1);
     }
 }
 
-void desempilhar_sementes (tipo_imagem_ppm *imagem_saida, tipo_semente_pai *pai, tipo_semente_filho *filho) {
-    imagem_saida->pixels[filho->linha][filho->coluna].R = pai->R;
-    imagem_saida->pixels[filho->linha][filho->coluna].G = pai->G;
-    imagem_saida->pixels[filho->linha][filho->coluna].B = pai->B;
+void desenfileirar_semente (tipo_imagem_ppm *imagem_saida, tipo_semente_pai *pai, int id) {
+    imagem_saida->pixels[pai[id].primeiro->linha][pai[id].primeiro->coluna].R = pai[id].R;
+    imagem_saida->pixels[pai[id].primeiro->linha][pai[id].primeiro->coluna].G = pai[id].G;
+    imagem_saida->pixels[pai[id].primeiro->linha][pai[id].primeiro->coluna].B = pai[id].B;
 
-    tipo_semente_filho *filho_desempilhado = filho;
-    if (filho->irmao) pai->filho = filho->irmao;
-    else pai->filho = NULL;
-
-    free (filho_desempilhado);
+    if (pai[id].num_filhos > 1) {
+        tipo_semente_filho *filho_removido = pai[id].primeiro;
+        pai[id].primeiro = pai[id].primeiro->irmao;
+        free (filho_removido);
+    }
+    else {
+        free (pai[id].primeiro);
+    }
+    pai[id].num_filhos--;
 }
 
-void segmentar_regioes (tipo_imagem_pgm *imagem_entrada, tipo_imagem_ppm *imagem_saida, tipo_semente_pai *pai) {
-    pai->filho = (tipo_semente_filho*) malloc(sizeof(tipo_semente_filho));
-    testar_alocacao (pai->filho, MEMORIA);
+void segmentar_regioes (tipo_imagem_pgm *imagem_entrada, tipo_imagem_ppm *imagem_saida, tipo_semente_pai *pai, int num_sementes) {
+    for (int id = 0; id < num_sementes; id++){
+        pai[id].primeiro = (tipo_semente_filho*) malloc(sizeof(tipo_semente_filho));
+        testar_alocacao (pai[id].primeiro, MEMORIA);
 
-    pai->filho->linha = pai->linha_inicial;
-    pai->filho->coluna = pai->coluna_inicial;
+        pai[id].num_filhos = 1;
+        pai[id].ultimo = pai[id].primeiro;
+        pai[id].primeiro->linha = pai[id].linha_inicial;
+        pai[id].primeiro->coluna = pai[id].coluna_inicial;
+        imagem_entrada->pixels[pai[id].primeiro->linha][pai[id].primeiro->coluna].passei = true;
 
-    while (pai->filho) {
-        testar_vizinhos (imagem_entrada, pai, pai->filho->linha, pai->filho->coluna);
-        desempilhar_sementes (imagem_saida, pai, pai->filho);
+        while (pai[id].num_filhos != 0) {
+            testar_vizinhos (imagem_entrada, pai, id);
+            desenfileirar_semente (imagem_saida, pai, id);
+        }
     }
 }
 
@@ -232,20 +248,20 @@ void criar_imagem_saida (tipo_imagem_ppm *imagem, char **argv) {
     char arquivo_temp [tamanho_nome];
 
     sprintf(arquivo_temp, "%s.ppm", argv[1]);
-    FILE *arquivo = fopen(arquivo_temp, "W");
+    FILE *arquivo = fopen(arquivo_temp, "w");
     testar_alocacao (arquivo, ARQUIVO);
 
-    fprintf(arquivo, "P3\n255\n%d %d\n", imagem->colunas, imagem->linhas);
+    fprintf(arquivo, "P3\n%d %d\n255\n", imagem->colunas, imagem->linhas);
 
     for (int i = 0; i < imagem->linhas; i++) {
         for (int j = 0; j < imagem->colunas; j++) {
-            fprintf(arquivo, "%02d %02d %02d", imagem->pixels[i][j].R, imagem->pixels[i][j].G, imagem->pixels[i][j].B);
-            if (j != imagem->linhas -1) printf(" ");
+            fprintf(arquivo, "%d %d %d", imagem->pixels[i][j].R, imagem->pixels[i][j].G, imagem->pixels[i][j].B);
+            if (j != imagem->linhas - 1) fprintf(arquivo, " ");
         }
-        printf("\n");
+        fprintf(arquivo, "\n");
     }
+    fclose (arquivo);
 }
-
 
 /* >> PROGRAMA PRINCIPAL: -------------------------------------------------------------------*/
 
@@ -267,11 +283,12 @@ int main (int argc, char **argv) {
     imagem_saida = criar_matriz_saida (imagem_entrada);
     sementes = armazenar_sementes (arquivo_semente, &num_sementes);
 
-    segmentar_regioes (imagem_entrada, imagem_saida, sementes);
+    segmentar_regioes (imagem_entrada, imagem_saida, sementes, num_sementes);
     criar_imagem_saida (imagem_saida, argv);
 
-    desalocar_sementes (sementes, num_sementes);
     desalocar_imagem_entrada (imagem_entrada);
+    desalocar_imagem_saida (imagem_saida);
+    desalocar_sementes (sementes, num_sementes);
 
     return EXIT_SUCCESS;
 }
