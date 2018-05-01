@@ -6,9 +6,12 @@
 #include <stdbool.h>
 
 /* >> CONSTANTES: ----------------------------------------------------------------------------*/
-//
-#define ARQUIVO 0
-#define MEMORIA 1
+
+#define ARQUIVO 0 // Parametro para funcao de testar alocacao de ponteiros
+#define MEMORIA 1 // Parametro para funcao de testar alocacao de ponteiros
+#define IMAGEM 0 // Parametro para funcao de abrir arquivos
+#define SEMENTE 1 // Parametro para funcao de abrir arquivos
+#define MAX_NOME 260 // tamanho maximo para nome de arquivos, padrao do Windows 10
 
 /* >> TIPOs DE DADOS: ------------------------------------------------------------------------*/
 
@@ -48,7 +51,7 @@ typedef struct tipo_semente_filho {
 
 void testar_alocacao (void *ponteiro, int tipo);
 
-void abrir_arquivos (int argc, char **argv, FILE **arquivo_imagem, FILE **arquivo_semente);
+FILE *abrir_arquivo (int argc, char **argv, int tipo);
 
 tipo_imagem_pgm *armazenar_imagem_entrada (FILE *arquivo);
 

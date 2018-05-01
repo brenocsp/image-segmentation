@@ -6,10 +6,6 @@
 #include <stdbool.h>
 #include "segmentacao-imagens.h"
 
-/* >> CONSTANTES: ----------------------------------------------------------------------------*/
-//
-#define ARQUIVO 0
-#define MEMORIA 1
 
 /* >> PROGRAMA PRINCIPAL: -------------------------------------------------------------------*/
 
@@ -22,7 +18,8 @@ int main (int argc, char **argv) {
     tipo_imagem_ppm *imagem_saida = NULL;
     tipo_imagem_pgm *imagem_entrada = NULL;
 
-    abrir_arquivos (argc, argv, &arquivo_imagem, &arquivo_semente);
+    arquivo_imagem = abrir_arquivo (argc, argv, IMAGEM);
+    arquivo_semente = abrir_arquivo (argc, argv, SEMENTE);
     imagem_entrada = armazenar_imagem_entrada (arquivo_imagem);
     imagem_saida = criar_matriz_saida (imagem_entrada);
     sementes = armazenar_sementes (arquivo_semente, &num_sementes);

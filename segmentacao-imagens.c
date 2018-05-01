@@ -10,22 +10,21 @@ void testar_alocacao (void *ponteiro, int tipo){
     }
 }
 
-void abrir_arquivos (int argc, char **argv, FILE **arquivo_imagem, FILE **arquivo_semente) {
+FILE *abrir_arquivo (int argc, char **argv, int tipo) {
     if (argc == 1) {
         printf("Nenhum arquivo de imagem foi passado\n");
         exit(EXIT_FAILURE);
     }
 
-    int tamanho_nome = strlen(argv[1]);
-    char arquivo_temp [tamanho_nome];
+    FILE *arquivo = NULL;
+    char arquivo_temp [MAX_NOME];
 
-    sprintf(arquivo_temp, "%s.pgm", argv[1]);
-    *arquivo_imagem = fopen(arquivo_temp, "r");
-    testar_alocacao (arquivo_imagem, ARQUIVO);
+    if (tipo == IMAGEM) sprintf(arquivo_temp, "%s.pgm", argv[1]);
+    else if (tipo == SEMENTE) sprintf(arquivo_temp, "%s.txt", argv[1]);
+    arquivo = fopen (arquivo_temp, "r");
+    testar_alocacao (arquivo, ARQUIVO);
 
-    sprintf(arquivo_temp, "%s.txt", argv[1]);
-    *arquivo_semente = fopen(arquivo_temp, "r");
-    testar_alocacao (arquivo_semente, ARQUIVO);
+    return (arquivo);
 }
 
 tipo_imagem_pgm *armazenar_imagem_entrada (FILE *arquivo) {
