@@ -1,84 +1,21 @@
-/* ---------------------------------------------------------------------------------------------
-
-UNIVERSIDADE FEDERAL DE MINAS GERAIS
-Departamento de Ciencia da Computacao
-
-DCC004 - Algoritmos e Estruturas de Dados II
-Profs. Cristiano Arbex Valle e Gisele L. Pappa
-
-TP1 - Segmentacao de imagens
-    Data de Entrega: 06/05/2018
-
-Autor: Breno Claudio de Sena Pimenta
-    Graduacao em Engenharia Eletrica
-    Matrícula: 2017074424
-
-------------------------------------------------------------------------------------------------
-
->> Objetivo:
-
-    O objetivo desse trabalho e implementar um programa que le uma imagem .pgm e segmenta suas
-    regioes utilizando um algoritmo de crescimento de regioes.
-
->> Funcionamento:
-
---------------------------------------------------------------------------------------------- */
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-
-/* >> CONSTANTES: ----------------------------------------------------------------------------*/
-#define ARQUIVO 0
-#define MEMORIA 1
-
-/* >> TIPOs DE DADOS: ------------------------------------------------------------------------*/
-typedef struct tipo_pixel_cinza {
-    int cor;
-    bool passei;
-}tipo_pixel_cinza;
-
-typedef struct tipo_pixel_rgb {
-    int R, G, B;
-}tipo_pixel_rgb;
-
-typedef struct tipo_imagem_ppm {
-    int linhas, colunas, nivel;
-    struct tipo_pixel_rgb **pixels;
-}tipo_imagem_ppm;
-
-typedef struct tipo_imagem_pgm {
-    int linhas, colunas, nivel;
-    struct tipo_pixel_cinza **pixels;
-}tipo_imagem_pgm;
-
-typedef struct tipo_semente_pai {
-    int limiar, R, G, B, num_filhos,
-        linha_inicial, coluna_inicial;
-    struct tipo_semente_filho *primeiro;
-    struct tipo_semente_filho *ultimo;
-}tipo_semente_pai;
-
-typedef struct tipo_semente_filho {
-    int linha, coluna;
-    struct tipo_semente_filho *irmao;
-}tipo_semente_filho;
+#include "segmentacao-imagens.h"
 
 /* >> FUNCOES: -------------------------------------------------------------------------------*/
 
 void testar_alocacao (void *ponteiro, int tipo){
     if (!ponteiro) {
-        if (tipo == ARQUIVO)
-            printf("Erro ao abrir arquivo!\n");
-        else
-            printf("Erro ao alocar memoria!\n");
+        if (tipo == ARQUIVO) printf("Erro ao abrir arquivo!\n");
+        else printf("Erro ao alocar memoria!\n");
         exit (EXIT_FAILURE);
     }
 }
 
-/* Funcao para abrir os arquivos */
-void abrir_arquivos (char **argv, FILE **arquivo_imagem, FILE **arquivo_semente) {
+void abrir_arquivos (int argc, char **argv, FILE **arquivo_imagem, FILE **arquivo_semente) {
+    if (argc == 1) {
+        printf("Nenhum arquivo de imagem foi passado\n");
+        exit(EXIT_FAILURE);
+    }
+
     int tamanho_nome = strlen(argv[1]);
     char arquivo_temp [tamanho_nome];
 
@@ -90,7 +27,6 @@ void abrir_arquivos (char **argv, FILE **arquivo_imagem, FILE **arquivo_semente)
     *arquivo_semente = fopen(arquivo_temp, "r");
     testar_alocacao (arquivo_semente, ARQUIVO);
 }
-/*<<< FIM ABRIR ARQUIVOS >>>*/
 
 tipo_imagem_pgm *armazenar_imagem_entrada (FILE *arquivo) {
     tipo_imagem_pgm *imagem = (tipo_imagem_pgm*) malloc(sizeof(tipo_imagem_pgm));
@@ -118,8 +54,9 @@ tipo_semente_pai *armazenar_sementes (FILE *arquivo, int *num_sementes) {
     tipo_semente_pai *pai = (tipo_semente_pai*) calloc(*num_sementes, sizeof(tipo_semente_pai));
     testar_alocacao (pai, MEMORIA);
 
-    fscanf(arquivo, "%d\n", &pai->limiar);
+    fscanf(arquivo, "%d\n", &pai[0].limiar);
     for (int id = 0; id < *num_sementes; id++) {
+        pai[id].limiar = pai[0].limiar;
         fscanf(arquivo, "%d, %d <%d, %d, %d>\n", &pai[id].coluna_inicial, &pai[id].linha_inicial, &pai[id].R, &pai[id].G, &pai[id].B);
     }
 
@@ -146,7 +83,6 @@ tipo_imagem_ppm *criar_matriz_saida (tipo_imagem_pgm *imagem_entrada) {
             imagem_saida->pixels[i][j].B = imagem_saida->pixels[i][j].R;
         }
     }
-
     return (imagem_saida);
 }
 
@@ -167,6 +103,14 @@ void desalocar_imagem_saida (tipo_imagem_ppm *imagem){
 }
 
 void desalocar_sementes (tipo_semente_pai *pai, int num_sementes) {
+    for (int id = 0; id < num_sementes; id++) {
+        while (pai[id].num_filhos != 0) {
+            tipo_semente_filho *filho_removido = pai[id].primeiro;
+            if (pai[id].primeiro != pai[id].ultimo) pai[id].primeiro = pai[id].primeiro->irmao;
+            pai[id].num_filhos--;
+            free (filho_removido);
+        }
+    }
     free (pai);
 }
 
@@ -185,27 +129,27 @@ void testar_vizinhos (tipo_imagem_pgm *imagem, tipo_semente_pai *pai, int id) {
     int cor_semente = imagem->pixels[i][j].cor;
 
     /* cima */
-    if(i - 1 > 0 && !imagem->pixels[i-1][j].passei && abs(cor_semente - imagem->pixels[i-1][j].cor) <= pai[id].limiar) {
-        imagem->pixels[i-1][j].passei = true;
+    if(i > 0 && !imagem->pixels[i-1][j].passei && abs(cor_semente - imagem->pixels[i-1][j].cor) <= pai[id].limiar) {
         enfileirar_semente (pai, id, i-1, j);
+        imagem->pixels[i-1][j].passei = true;
     }
 
     /* esquerda */
-    if(j - 1 > 0 && !imagem->pixels[i][j-1].passei && abs(cor_semente - imagem->pixels[i][j-1].cor) <= pai[id].limiar) {
-        imagem->pixels[i][j-1].passei = true;
+    if(j > 0 && !imagem->pixels[i][j-1].passei && abs(cor_semente - imagem->pixels[i][j-1].cor) <= pai[id].limiar) {
         enfileirar_semente (pai, id, i, j-1);
+        imagem->pixels[i][j-1].passei = true;
     }
 
     /* baixo */
     if(i + 1 < imagem->linhas && !imagem->pixels[i+1][j].passei && abs(cor_semente - imagem->pixels[i+1][j].cor) <= pai[id].limiar) {
-        imagem->pixels[i+1][j].passei = true;
         enfileirar_semente (pai, id, i+1, j);
+        imagem->pixels[i+1][j].passei = true;
     }
 
     /* direita */
     if(j + 1 < imagem->colunas && !imagem->pixels[i][j+1].passei && abs(cor_semente - imagem->pixels[i][j+1].cor) <= pai[id].limiar) {
-        imagem->pixels[i][j+1].passei = true;
         enfileirar_semente (pai, id, i, j+1);
+        imagem->pixels[i][j+1].passei = true;
     }
 }
 
@@ -229,7 +173,6 @@ void segmentar_regioes (tipo_imagem_pgm *imagem_entrada, tipo_imagem_ppm *imagem
     for (int id = 0; id < num_sementes; id++){
         pai[id].primeiro = (tipo_semente_filho*) malloc(sizeof(tipo_semente_filho));
         testar_alocacao (pai[id].primeiro, MEMORIA);
-
         pai[id].num_filhos = 1;
         pai[id].ultimo = pai[id].primeiro;
         pai[id].primeiro->linha = pai[id].linha_inicial;
@@ -252,7 +195,6 @@ void criar_imagem_saida (tipo_imagem_ppm *imagem, char **argv) {
     testar_alocacao (arquivo, ARQUIVO);
 
     fprintf(arquivo, "P3\n%d %d\n255\n", imagem->colunas, imagem->linhas);
-
     for (int i = 0; i < imagem->linhas; i++) {
         for (int j = 0; j < imagem->colunas; j++) {
             fprintf(arquivo, "%d %d %d", imagem->pixels[i][j].R, imagem->pixels[i][j].G, imagem->pixels[i][j].B);
@@ -261,34 +203,4 @@ void criar_imagem_saida (tipo_imagem_ppm *imagem, char **argv) {
         fprintf(arquivo, "\n");
     }
     fclose (arquivo);
-}
-
-/* >> PROGRAMA PRINCIPAL: -------------------------------------------------------------------*/
-
-int main (int argc, char **argv) {
-    if (argc == 1) {
-        printf("Nenhum arquivo de imagem foi passado\n");
-        exit(EXIT_FAILURE);
-    }
-
-    int num_sementes = 0;
-    FILE *arquivo_imagem = NULL;
-    FILE *arquivo_semente = NULL;
-    tipo_semente_pai *sementes = NULL;
-    tipo_imagem_ppm *imagem_saida = NULL;
-    tipo_imagem_pgm *imagem_entrada = NULL;
-
-    abrir_arquivos (argv, &arquivo_imagem, &arquivo_semente);
-    imagem_entrada = armazenar_imagem_entrada (arquivo_imagem);
-    imagem_saida = criar_matriz_saida (imagem_entrada);
-    sementes = armazenar_sementes (arquivo_semente, &num_sementes);
-
-    segmentar_regioes (imagem_entrada, imagem_saida, sementes, num_sementes);
-    criar_imagem_saida (imagem_saida, argv);
-
-    desalocar_imagem_entrada (imagem_entrada);
-    desalocar_imagem_saida (imagem_saida);
-    desalocar_sementes (sementes, num_sementes);
-
-    return EXIT_SUCCESS;
 }
