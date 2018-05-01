@@ -6,7 +6,7 @@
 #include <stdbool.h>
 
 /* >> CONSTANTES: ----------------------------------------------------------------------------*/
-
+//
 #define ARQUIVO 0
 #define MEMORIA 1
 
