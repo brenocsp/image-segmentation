@@ -7,7 +7,7 @@
 #include "segmentacao-imagens.h"
 
 /* >> CONSTANTES: ----------------------------------------------------------------------------*/
-
+//
 #define ARQUIVO 0
 #define MEMORIA 1
 
