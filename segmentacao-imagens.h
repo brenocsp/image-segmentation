@@ -8,8 +8,9 @@
 
 /* >> CONSTANTES: ----------------------------------------------------------------------------*/
 
-#define ARQUIVO 0 // Parametro para funcao de testar alocacao de ponteiros
-#define MEMORIA 1 // Parametro para funcao de testar alocacao de ponteiros
+#define LIMIAR 10 // Limiar para a função recursiva de segmentação
+#define MEMORIA 0 // Parametro para funcao de testar alocacao de ponteiros
+#define ARQUIVO 1 // Parametro para funcao de testar alocacao de ponteiros
 #define MAX_NOME 260 // tamanho maximo para nome de arquivos, padrão do Windows 10
 
 /* >> TIPOs DE DADOS: ------------------------------------------------------------------------*/
@@ -43,8 +44,8 @@ typedef struct tipo_imagem_ppm {
 
 /* Objetivo: armazenar informações de uma fila de região segmentada para cada semente */
 typedef struct tipo_semente_pai {
-    int limiar, R, G, B, num_filhos,
-        linha_inicial, coluna_inicial;
+    int limiar, linha_inicial, coluna_inicial, num_filhos;
+    struct tipo_pixel_rgb cor;
     struct tipo_semente_filho *primeiro;
     struct tipo_semente_filho *ultimo;
 }tipo_semente_pai;
@@ -137,14 +138,22 @@ void desalocar_sementes (tipo_semente_pai *sementes, int num_sementes);
 
 
 /* ---------------------------------------------------------------------------------------------
-Protótipo: void enfileirar (tipo_imagem_pgm *imagem, tipo_semente_pai *pai, int i, int j);
+Protótipo: void enfileirar (tipo_semente_pai *pai, int i, int j);
 Função:    Colocar uma semente em uma fila para ser processada (testar se a sua vizinhança faz
            parte da mesma região).
-Entrada:   Ponteiro para a matriz dinamica que contem a imagem de entrada, ponteiro para o vetor
-           dinamico tipo_semente_pai, coordenadas da semente na matriz de imagem.
+Entrada:   Ponteiro para um tipo_semente_pai, coordenadas da semente na matriz de imagem.
 Saída:     A função não retorna valores.
 -----------------------------------------------------------------------------------------------*/
-void enfileirar (tipo_imagem_pgm *imagem, tipo_semente_pai *pai, int i, int j);
+void enfileirar (tipo_semente_pai *pai, int i, int j);
+
+
+/* ---------------------------------------------------------------------------------------------
+Protótipo: void desenfileirar_semente (tipo_semente_pai *pai);
+Função:    Desalocar o primeiro elemento da fila de sementes (o primeiro filho).
+Entrada:   Ponteiro para uma semente pai.
+Saída:     A função não retorna valores.
+-----------------------------------------------------------------------------------------------*/
+void desenfileirar (tipo_semente_pai *pai);
 
 
 /* ---------------------------------------------------------------------------------------------
@@ -152,7 +161,7 @@ Protótipo: bool verificar_condicoes (tipo_imagem_pgm *imagem, int cor, int i, i
 Função:    Realizar séries de condições para verificar se um vizinho é parte de uma mesma região
 Entrada:   Ponteiro para a imagem de entrada, valor do limiar da semente pai, valor da cor de
            comparação, numero da linha e da coluna.
-Saída:     A função retorna um valor boleano para habilitar o enfileiramento da semente.
+Saída:     A função retorna um valor booleano para habilitar o enfileiramento da semente.
 -----------------------------------------------------------------------------------------------*/
 bool verificar_condicoes (tipo_imagem_pgm *imagem, int limiar, int cor, int i, int j);
 
@@ -162,38 +171,21 @@ Protótipo: testar_vizinhos (tipo_imagem_pgm *imagem, tipo_semente_pai *pai);
 Função:    Testar a vizinhança 4-conexa de um pixel para determinar se haverá a expanção
            do grupo. Se a diferença de intensidade entre dois pixels vizinhos for pequena,
            o grupo se propaga.
-Entrada:   Ponteiro para a imagem de entrada, ponteiro para o vetor de sementes pai.
+Entrada:   Ponteiro para a imagem de entrada, ponteiro para uma semente pai.
 Saída:     A função não retorna valores.
 -----------------------------------------------------------------------------------------------*/
 void testar_vizinhos (tipo_imagem_pgm *imagem, tipo_semente_pai *pai);
 
 
 /* ---------------------------------------------------------------------------------------------
-Protótipo: void definir_posicao_visitada (tipo_imagem_pgm *imagem_entrada, int i, int j);
-Função:    Marcar na imagem de entrada que determinada posição P(i,j) já foi visitada, ou seja,
-           o pixel P(i,j) já está ligado a uma determinada região.
-Entrada:   Ponteiro para a imagem de entrada, coordenadas da semente na matriz de imagem..
+Protótipo: void colorir_imagem_saida (tipo_imagem_ppm *imagem_saida, tipo_pixel_rgb *cor_rgb,
+           int i, int j);
+Função:    Colorir a imagem de saída com os dados de cores de um pixel RGB.
+Entrada:   Recebe um ponteiro para a imagem de saída, um ponteiro para um pixel RGB e a posição
+           (i, j) que deve ser colorida.
 Saída:     A função não retorna valores.
 -----------------------------------------------------------------------------------------------*/
-void definir_posicao_visitada (tipo_imagem_pgm *imagem_entrada, int i, int j);
-
-
-/* ---------------------------------------------------------------------------------------------
-Protótipo: void coloriar_imagem_saida (tipo_imagem_ppm *imagem_saida, tipo_semente_pai *pai);
-Função:    Colorir a imagem de saaída com os dados de cores da semente pai.
-Entrada:   Ponteiro para a imagem de saida, ponteiro para o vetor de sementes pai.
-Saída:     A função não retorna valores.
------------------------------------------------------------------------------------------------*/
-void coloriar_imagem_saida (tipo_imagem_ppm *imagem_saida, tipo_semente_pai *pai);
-
-
-/* ---------------------------------------------------------------------------------------------
-Protótipo: void desenfileirar_semente (tipo_imagem_ppm *imagem_saida, tipo_semente_pai *pai);
-Função:    Desalocar o primeiro elemento da fila de sementes (o primeiro filho).
-Entrada:   Ponteiro para a imagem de saida, ponteiro para o vetor de sementes pai.
-Saída:     A função não retorna valores.
------------------------------------------------------------------------------------------------*/
-void desenfileirar (tipo_imagem_ppm *imagem_saida, tipo_semente_pai *pai);
+void colorir_imagem_saida (tipo_imagem_ppm *imagem_saida, tipo_pixel_rgb *cor_rgb, int i, int j);
 
 
 /* ---------------------------------------------------------------------------------------------
@@ -224,60 +216,37 @@ void segmentar_regioes (tipo_imagem_pgm *imagem_entrada, tipo_imagem_ppm *imagem
 
 /* ---------------------------------------------------------------------------------------------
 Protótipo: void criar_imagem_saida (tipo_imagem_ppm *imagem, char *nome_arquivo);
-Função:    criar um arquivo de imagem com as regiões segmentadas.
+Função:    Criar um arquivo de imagem com as regiões segmentadas.
 Entrada:   Ponteiro para a imagem de saída tipo_imagem_ppm e o nome desejado do arquivo.
 Saída:     A função não retorna valores.
 -----------------------------------------------------------------------------------------------*/
 void criar_imagem_saida (tipo_imagem_ppm *imagem, char *nome_arquivo);
 
 
-/* >> FUNCOES SEMENTES ALEATORIAS: ------------------------------------------------------------*/
-
-
-/* ---------------------------------------------------------------------------------------------
-Protótipo: tipo_semente_pai gerar_pai_aleatorio (int i, int j);
-Função:    Criar um pai de posição P(i,j) pré-definidos com cores aletarias para iniciar uma re-
-           giçao a ser segmentada.
-Entrada:   Linha e coluna iniciais.
-Saída:     A função retorna um ponteiro para o pai criado.
------------------------------------------------------------------------------------------------*/
-tipo_semente_pai* gerar_pai_aleatorio (int i, int j);
+/* >> FUNCOES SEMENTES ALEATORIAS e RECURSIVIDADE: --------------------------------------------*/
 
 
 /* ---------------------------------------------------------------------------------------------
 Protótipo: void segmentar_aleatoriamente (tipo_imagem_pgm *imagem_entrada, tipo_imagem_ppm*
-           imagem_saida, tipo_semente_pai *pai, int *num_sementes);
-Função:    Segmentar a imagem de entrada a partir de uma semente inicial de cor aleatoria e
-           posição inicial P(0,0). A partir da segmentação do primeiro ponto P, a função procura
-           outro ponto que ainda não foi segmentado para iniciar outra região.
-Entrada:   Ponteiro para a imagem de entrada tipo_imagem_pgm, ponteiro para a imagem de entrada,
-           ponteiro para o vetor de sementes pai tipo_semente_pai, e o identificador do pai que
-           está sendo tratado.
+           imagem_saida);
+Função:    Segmentar imagem de entrada a partir de uma semente inicial de posição e cores alea-
+           torias. O numero de sementes vai depender do numero de linhas e colunas da imagem.
+Entrada:   Ponteiro para a imagem de entrada tipo_imagem_pgm, ponteiro para a imagem de saída
+           tipo_imagem_ppm.
 Saída:     A função não retorna valores.
 -----------------------------------------------------------------------------------------------*/
-void segmentar_aleatoriamente (tipo_imagem_pgm *imagem_entrada, tipo_imagem_ppm *imagem_saida,
-                               tipo_semente_pai *pai, int *num_sementes);
+void segmentar_aleatoriamente (tipo_imagem_pgm *imagem_entrada, tipo_imagem_ppm *imagem_saida);
 
 
 /* ---------------------------------------------------------------------------------------------
-Protótipo: bool sementes_aleatorias ();
-Função:    Verificar com o usuario se ele deseja executar o programa com sementes aleatorias ou
-           utilizando o arquivo de sementes pré-definidas.
-Entrada:   A função não possui parametros de entrada.
-Saída:     A função retorna true caso o usuario queira utilizar sementes aleatorias ou false se
-           deseja utilizar sementes pre-definidas. Caso o usuario pressione tecla incorreta, a
-           função retorna ela mesma para que alguma tecla correta possa ser pressionada.
+Protótipo: void testar_vizinhos_recursivamente (tipo_imagem_pgm *imagem_entrada,tipo_imagem_ppm*
+           imagem_saida, tipo_pixel_rgb *cor_rgb, int i, int j);
+Função:    Testar se os vizinhos de cima, baixo, direita e esquerda de um pixel faz parte de uma
+           mesma região a ser segmentada.
+Entrada:   Ponteiro para a imagem de entrada tipo_imagem_pgm, ponteiro para a imagem de saída
+           tipo tipo_imagem_ppm, ponteiro para um conjunto de cores RGB, numero da linha e da
+           coluna que será testada na imagem de entrada.
+Saída:     A função não retorna valores.
 -----------------------------------------------------------------------------------------------*/
-bool usar_sementes_aleatorias ();
-
-
-/* ---------------------------------------------------------------------------------------------
-Protótipo: bool usar_recurvidade ();
-Função:    Verificar com o usuario se deseja executar o programa utilizar o algoritmo de segmen-
-           recursivo ou iterativo.
-Entrada:   A função não possui parametros de entrada.
-Saída:     A função retorna true caso o usuario queira utilizar algoritmo recursivo ou false se
-           deseja utilizar o iterativo.  Caso o usuario pressione tecla incorreta, a função re-
-           torna ela mesma para que alguma tecla correta possa ser pressionada.
------------------------------------------------------------------------------------------------*/
-bool usar_recurvidade ();
+void testar_vizinhos_recursivamente (tipo_imagem_pgm *imagem_entrada, tipo_imagem_ppm *imagem_saida,
+                                     tipo_pixel_rgb *cor_rgb, int i, int j);

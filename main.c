@@ -5,7 +5,7 @@ DCC004 - Algoritmos e Estruturas de Dados II
 Profs. Cristiano Arbex Valle e Gisele L. Pappa
 
 TP1 - Segmentação de Imagens
-Data de Entrega: 06/05/2018
+Data de Entrega: 11/05/2018
 
 Autor: Breno Claudio de Sena Pimenta
 Graduacao em Engenharia Eletrica
@@ -19,10 +19,18 @@ Matrícula: 2017074424
 >> Funcionamento:
 
     1. O programa recebe os nomes dos arquivos sem extenção por meio de passagem de argumentos
-    e copia os dados da imagem de entrada (.pgm) e do arquivo de sementes (.txt).
+    e copia os dados da imagem de entrada (.pgm).
+    
+    2. Caso exista um arquivo de sementes auxiliares pre-definidas, o programa roda um algorit-
+    mo de crescimento de regiões iterativo utilizando filas.
 
-    3. A imagem de saída é salva em um arquivo com o mesmo nome da imagem original de formato
-    .ppm, com as regiões segmentadas.
+    3. Caso contrário, o programa ignora o algoritmo iterativo e gera sementes aleatorias para
+    a imagem de entrada e realiza o crescimento das regiões por meio de algoritmo recursivo.
+
+    4. Caso exista um arquivo auxiliar de sementes, o program ira gerar uma imagem de saida com
+    tais sementes e também irá gerar outra imagem com sementes aleatorias.
+
+    5. Ao final, toda memoria alocada dinamicamente é deslocada.
 --------------------------------------------------------------------------------------------- */
 
 /* >> BIBLIOTECAS: ---------------------------------------------------------------------------*/
@@ -42,31 +50,45 @@ int main (int argc, char **argv) {
     testar_alocacao(argv[1], ARQUIVO);
     srand(time(NULL));
 
+    /* Declaracao de variaveis: */
     int num_sementes = 0;
+    char nome_sementes [MAX_NOME];
+    char nome_recursivo [MAX_NOME];
     FILE *arquivo_imagem = NULL;
     FILE *arquivo_semente = NULL;
     tipo_semente_pai *sementes = NULL;
-    tipo_imagem_ppm *imagem_saida = NULL;
     tipo_imagem_pgm *imagem_entrada = NULL;
+    tipo_imagem_ppm *imagem_saida_iterativa = NULL;
+    tipo_imagem_ppm *imagem_saida_recursiva = NULL;
 
+    /* Leitura da imagem de entrada: */
     arquivo_imagem = abrir_arquivo (argv[1], ".pgm", "r");
     imagem_entrada = armazenar_imagem_entrada (arquivo_imagem);
-    imagem_saida = alocar_matriz_saida (imagem_entrada);
 
-    if (usar_sementes_aleatorias ()) {
-        segmentar_aleatoriamente (imagem_entrada, imagem_saida, sementes, &num_sementes);
-    }
-
-    else {
-        arquivo_semente = abrir_arquivo (argv[1], ".txt", "r");
+    /* Usar arquivo de sementes auxiliares: */
+    sprintf(nome_sementes, "%s%s", argv[1], ".txt");
+    arquivo_semente = fopen (nome_sementes, "r");
+    if (arquivo_semente) {
         sementes = armazenar_sementes (arquivo_semente, &num_sementes);
-        segmentar_regioes(imagem_entrada, imagem_saida, sementes, num_sementes);
+        imagem_saida_iterativa = alocar_matriz_saida (imagem_entrada);
+        segmentar_regioes(imagem_entrada, imagem_saida_iterativa, sementes, num_sementes);
+        criar_imagem_saida (imagem_saida_iterativa, argv[1]);
+        desalocar_imagem_saida (imagem_saida_iterativa);
+        desalocar_sementes (sementes, num_sementes);
+    }
+    else {
+        printf("Arquivo %s de sementes pre-definidas nao foi encontrado!\n", nome_sementes);
+        printf("Sera utilizado somente sementes aleatorias.\n");
     }
 
-    criar_imagem_saida (imagem_saida, argv[1]);
+    /* Usar algoritmo de semente aleatorias e recursividade: */
+    imagem_saida_recursiva = alocar_matriz_saida (imagem_entrada);
+    sprintf(nome_recursivo, "%s%s", argv[1], "_recursivo");
+    segmentar_aleatoriamente (imagem_entrada, imagem_saida_recursiva);
+    criar_imagem_saida (imagem_saida_recursiva, nome_recursivo);
+    desalocar_imagem_saida (imagem_saida_recursiva);
+
     desalocar_imagem_entrada (imagem_entrada);
-    desalocar_imagem_saida (imagem_saida);
-    desalocar_sementes (sementes, num_sementes);
 
     return EXIT_SUCCESS;
 }

@@ -2,6 +2,8 @@
 
 /* >> FUNCOES: -------------------------------------------------------------------------------*/
 
+/* -------------------------------------------------------------------------------------------*/
+
 void testar_alocacao (void *ponteiro, int tipo){
     if (!ponteiro) {
         if (tipo == ARQUIVO) printf("Erro ao abrir arquivo!\n");
@@ -9,6 +11,8 @@ void testar_alocacao (void *ponteiro, int tipo){
         exit (EXIT_FAILURE);
     }
 }
+
+/* -------------------------------------------------------------------------------------------*/
 
 FILE *abrir_arquivo (char *nome, char *formato, char *tipo_acesso) {
     FILE *arquivo = NULL;
@@ -19,10 +23,11 @@ FILE *abrir_arquivo (char *nome, char *formato, char *tipo_acesso) {
     return arquivo;
 }
 
+/* -------------------------------------------------------------------------------------------*/
+
 tipo_imagem_pgm *armazenar_imagem_entrada (FILE *arquivo) {
     tipo_imagem_pgm *imagem = (tipo_imagem_pgm*) malloc(sizeof(tipo_imagem_pgm));
     testar_alocacao (imagem, MEMORIA);
-
     fscanf(arquivo, "P2\n%d\n%d\n%d\n", &imagem->colunas, &imagem->linhas, &imagem->nivel);
     imagem->pixels = (tipo_pixel_cinza**)calloc(imagem->linhas, sizeof(tipo_pixel_cinza*));
     testar_alocacao (imagem->pixels, MEMORIA);
@@ -30,7 +35,6 @@ tipo_imagem_pgm *armazenar_imagem_entrada (FILE *arquivo) {
     for (int i = 0; i < imagem->linhas; i++) {
         imagem->pixels[i] = (tipo_pixel_cinza*) calloc(imagem->colunas, sizeof(tipo_pixel_cinza));
         testar_alocacao (imagem->pixels[i], MEMORIA);
-
         for (int j = 0; j < imagem->colunas; j++) {
             fscanf(arquivo, "%d ", &imagem->pixels[i][j].cor);
         }
@@ -40,6 +44,8 @@ tipo_imagem_pgm *armazenar_imagem_entrada (FILE *arquivo) {
     return imagem;
 }
 
+/* -------------------------------------------------------------------------------------------*/
+
 tipo_semente_pai *armazenar_sementes (FILE *arquivo, int *num_sementes) {
     fscanf(arquivo, "%d\n", &*num_sementes);
     tipo_semente_pai *pai = (tipo_semente_pai*) calloc(*num_sementes, sizeof(tipo_semente_pai));
@@ -48,11 +54,13 @@ tipo_semente_pai *armazenar_sementes (FILE *arquivo, int *num_sementes) {
     fscanf(arquivo, "%d\n", &pai[0].limiar);
     for (int i = 0; i < *num_sementes; i++) {
         pai[i].limiar = pai[0].limiar;
-        fscanf(arquivo, "%d, %d <%d, %d, %d>\n", &pai[i].coluna_inicial, &pai[i].linha_inicial, &pai[i].R, &pai[i].G, &pai[i].B);
+        fscanf(arquivo, "%d, %d <%d, %d, %d>\n", &pai[i].coluna_inicial, &pai[i].linha_inicial, &pai[i].cor.R, &pai[i].cor.G, &pai[i].cor.B);
     }
     fclose (arquivo);
     return pai;
 }
+
+/* -------------------------------------------------------------------------------------------*/
 
 tipo_imagem_ppm *alocar_matriz_saida (tipo_imagem_pgm *imagem_entrada) {
     tipo_imagem_ppm *imagem_saida = (tipo_imagem_ppm*) malloc(sizeof(tipo_imagem_ppm));
@@ -76,6 +84,8 @@ tipo_imagem_ppm *alocar_matriz_saida (tipo_imagem_pgm *imagem_entrada) {
     return imagem_saida;
 }
 
+/* -------------------------------------------------------------------------------------------*/
+
 void desalocar_imagem_entrada (tipo_imagem_pgm *imagem) {
     for (int i = 0; i < imagem->linhas; i++) {
         free(imagem->pixels[i]);
@@ -84,6 +94,8 @@ void desalocar_imagem_entrada (tipo_imagem_pgm *imagem) {
     free(imagem);
 }
 
+/* -------------------------------------------------------------------------------------------*/
+
 void desalocar_imagem_saida (tipo_imagem_ppm *imagem){
     for (int i = 0; i < imagem->linhas; i++) {
         free(imagem->pixels[i]);
@@ -91,6 +103,8 @@ void desalocar_imagem_saida (tipo_imagem_ppm *imagem){
     free(imagem->pixels);
     free(imagem);
 }
+
+/* -------------------------------------------------------------------------------------------*/
 
 void desalocar_sementes (tipo_semente_pai *sementes, int num_sementes) {
     for (int i = 0; i < num_sementes; i++) {
@@ -104,13 +118,15 @@ void desalocar_sementes (tipo_semente_pai *sementes, int num_sementes) {
     free (sementes);
 }
 
-void enfileirar (tipo_imagem_pgm *imagem_entrada, tipo_semente_pai *pai, int i, int j) {
-    definir_posicao_visitada (imagem_entrada, i, j);
+/* -------------------------------------------------------------------------------------------*/
+
+void enfileirar (tipo_semente_pai *pai, int i, int j) {
     tipo_semente_filho *novo_filho = (tipo_semente_filho*) malloc(sizeof(tipo_semente_filho));
     testar_alocacao (novo_filho, MEMORIA);
     if (pai->primeiro == NULL) {
         pai->primeiro = novo_filho;
         pai->ultimo = novo_filho;
+        novo_filho->irmao = NULL;
     }
     else {
         pai->ultimo->irmao = novo_filho;
@@ -121,46 +137,52 @@ void enfileirar (tipo_imagem_pgm *imagem_entrada, tipo_semente_pai *pai, int i, 
     novo_filho->coluna = j;
 }
 
+/* -------------------------------------------------------------------------------------------*/
+
 bool verificar_condicoes (tipo_imagem_pgm *imagem, int limiar, int cor, int i, int j) {
     bool pode_enfileirar = false;
-    if (i > 0 && j > 0 && i < imagem->linhas && j < imagem->colunas) {
+    if (i >= 0 && j >= 0 && i < imagem->linhas && j < imagem->colunas) {
         if (!imagem->pixels[i][j].passei && abs(cor - imagem->pixels[i][j].cor) <= limiar) {
             pode_enfileirar = true;
+            imagem->pixels[i][j].passei = true;
         }
     }
     return pode_enfileirar;
 }
+
+/* -------------------------------------------------------------------------------------------*/
 
 void testar_vizinhos (tipo_imagem_pgm *imagem, tipo_semente_pai *pai) {
     int limiar = pai->limiar;
     int i = pai->primeiro->linha;
     int j = pai->primeiro->coluna;
     int cor = imagem->pixels[i][j].cor; // cor atual
+    imagem->pixels[pai->primeiro->linha][pai->primeiro->coluna].passei = true;
 
     /* Testar vizinhos na horizontal e vertical: */
-    if (verificar_condicoes (imagem, limiar, cor, i-1, j  )) enfileirar (imagem, pai, i-1, j  ); // cima
-    if (verificar_condicoes (imagem, limiar, cor, i  , j-1)) enfileirar (imagem, pai, i  , j-1); // esquerda
-    if (verificar_condicoes (imagem, limiar, cor, i+1, j  )) enfileirar (imagem, pai, i+1, j  ); // baixo
-    if (verificar_condicoes (imagem, limiar, cor, i  , j+1)) enfileirar (imagem, pai, i  , j+1); // direita
+    if (verificar_condicoes (imagem, limiar, cor, i-1, j  )) enfileirar (pai, i-1, j  ); // cima
+    if (verificar_condicoes (imagem, limiar, cor, i  , j-1)) enfileirar (pai, i  , j-1); // esquerda
+    if (verificar_condicoes (imagem, limiar, cor, i+1, j  )) enfileirar (pai, i+1, j  ); // baixo
+    if (verificar_condicoes (imagem, limiar, cor, i  , j+1)) enfileirar (pai, i  , j+1); // direita
 
-    /* Testar vizinhos nas diagonais: */
-    // if (verificar_condicoes (imagem, limiar, cor, i-1, j+1)) enfileirar (imagem, pai, i-1, j+1); // diagonal superior direita
-    // if (verificar_condicoes (imagem, limiar, cor, i-1, j-1)) enfileirar (imagem, pai, i-1, j-1); // diagonal superior esquerda
-    // if (verificar_condicoes (imagem, limiar, cor, i+1, j-1)) enfileirar (imagem, pai, i+1, j-1); // diagonal inferior esquerda
-    // if (verificar_condicoes (imagem, limiar, cor, i+1, j+1)) enfileirar (imagem, pai, i+1, j+1); // diagonal inferior direita
+    /* Testar vizinhos nas diagonais: (caso queira experimentar)*/
+    // if (verificar_condicoes (imagem, limiar, cor, i-1, j+1)) enfileirar (pai, i-1, j+1); // diagonal superior direita
+    // if (verificar_condicoes (imagem, limiar, cor, i-1, j-1)) enfileirar (pai, i-1, j-1); // diagonal superior esquerda
+    // if (verificar_condicoes (imagem, limiar, cor, i+1, j-1)) enfileirar (pai, i+1, j-1); // diagonal inferior esquerda
+    // if (verificar_condicoes (imagem, limiar, cor, i+1, j+1)) enfileirar (pai, i+1, j+1); // diagonal inferior direita
 }
 
-void definir_posicao_visitada (tipo_imagem_pgm *imagem_entrada, int i, int j) {
-    imagem_entrada->pixels[i][j].passei = true;
+/* -------------------------------------------------------------------------------------------*/
+
+void colorir_imagem_saida (tipo_imagem_ppm *imagem_saida, tipo_pixel_rgb *cor_rgb, int i, int j) {
+    imagem_saida->pixels[i][j].R = cor_rgb->R;
+    imagem_saida->pixels[i][j].G = cor_rgb->G;
+    imagem_saida->pixels[i][j].B = cor_rgb->B;
 }
 
-void coloriar_imagem_saida (tipo_imagem_ppm *imagem_saida, tipo_semente_pai *pai) {
-    imagem_saida->pixels[pai->primeiro->linha][pai->primeiro->coluna].R = pai->R;
-    imagem_saida->pixels[pai->primeiro->linha][pai->primeiro->coluna].G = pai->G;
-    imagem_saida->pixels[pai->primeiro->linha][pai->primeiro->coluna].B = pai->B;
-}
+/* -------------------------------------------------------------------------------------------*/
 
-void desenfileirar (tipo_imagem_ppm *imagem_saida, tipo_semente_pai *pai) {
+void desenfileirar (tipo_semente_pai *pai) {
     if (pai->num_filhos > 1) {
         tipo_semente_filho *filho_removido = pai->primeiro;
         pai->primeiro = pai->primeiro->irmao;
@@ -172,6 +194,8 @@ void desenfileirar (tipo_imagem_ppm *imagem_saida, tipo_semente_pai *pai) {
     pai->num_filhos--;
 }
 
+/* -------------------------------------------------------------------------------------------*/
+
 void resetar_matriz_passei (tipo_imagem_pgm *imagem) {
     for (int i = 0; i < imagem->linhas; i++) {
         for (int j = 0; j < imagem->colunas; j++) {
@@ -180,17 +204,21 @@ void resetar_matriz_passei (tipo_imagem_pgm *imagem) {
     }
 }
 
+/* -------------------------------------------------------------------------------------------*/
+
 void segmentar_regioes (tipo_imagem_pgm *imagem_entrada, tipo_imagem_ppm *imagem_saida, tipo_semente_pai *sementes, int num_sementes) {
     for (int i = 0; i < num_sementes; i++){
-        enfileirar (imagem_entrada, &sementes[i], sementes[i].linha_inicial, sementes[i].coluna_inicial);
+        enfileirar (&sementes[i], sementes[i].linha_inicial, sementes[i].coluna_inicial);
         while (sementes[i].num_filhos != 0) {
             testar_vizinhos (imagem_entrada, &sementes[i]);
-            coloriar_imagem_saida (imagem_saida, &sementes[i]);
-            desenfileirar (imagem_saida, &sementes[i]);
+            colorir_imagem_saida (imagem_saida, &sementes[i].cor, sementes[i].primeiro->linha, sementes[i].primeiro->coluna);
+            desenfileirar (&sementes[i]);
         }
         resetar_matriz_passei (imagem_entrada);
     }
 }
+
+/* -------------------------------------------------------------------------------------------*/
 
 void criar_imagem_saida (tipo_imagem_ppm *imagem, char *nome_arquivo) {
     FILE *arquivo = abrir_arquivo (nome_arquivo, ".ppm", "w");
@@ -205,28 +233,55 @@ void criar_imagem_saida (tipo_imagem_ppm *imagem, char *nome_arquivo) {
     fclose (arquivo);
 }
 
-bool usar_sementes_aleatorias () {
-    char opcao;
-    printf ("\nDeseja utilizar sementes aleatorias? [S / N]: ");
-    scanf ("%c", &opcao);
+/* -------------------------------------------------------------------------------------------*/
 
-    if (opcao == 'S' || opcao == 's') return true;
-    else if (opcao == 'N' || opcao == 'n') return false;
-    else {
-        printf("Comando invalido! Tente novamente.\n");
-        return usar_sementes_aleatorias ();
+/* >> FUNCOES RECURSIVAS E SEMENTES ALEATORIAS: ----------------------------------------------*/
+
+/* -------------------------------------------------------------------------------------------*/
+
+void testar_vizinhos_recursivamente (tipo_imagem_pgm *imagem_entrada, tipo_imagem_ppm *imagem_saida,
+                                     tipo_pixel_rgb *cor_rgb, int i, int j) {
+    int cor_cinza = imagem_entrada->pixels[i][j].cor; // cor atual
+    colorir_imagem_saida (imagem_saida, cor_rgb, i, j);
+
+    /* Testar vizinhos na horizontal e vertical: */
+    if (verificar_condicoes (imagem_entrada, LIMIAR, cor_cinza, i - 1, j)) {
+        imagem_entrada->pixels[i - 1][j].passei = true;
+        testar_vizinhos_recursivamente (imagem_entrada, imagem_saida, cor_rgb, i - 1, j);
+    }
+    if (verificar_condicoes (imagem_entrada, LIMIAR, cor_cinza, i + 1, j)) {
+        imagem_entrada->pixels[i + 1][j].passei = true;
+        testar_vizinhos_recursivamente (imagem_entrada, imagem_saida, cor_rgb, i + 1, j);
+    }
+    if (verificar_condicoes (imagem_entrada, LIMIAR, cor_cinza, i, j + 1)) {
+        imagem_entrada->pixels[i][j + 1].passei = true;
+        testar_vizinhos_recursivamente (imagem_entrada, imagem_saida, cor_rgb, i, j + 1);
+    }
+    if (verificar_condicoes (imagem_entrada, LIMIAR, cor_cinza, i, j - 1)) {
+        imagem_entrada->pixels[i][j - 1].passei = true;
+        testar_vizinhos_recursivamente (imagem_entrada, imagem_saida, cor_rgb, i, j - 1);
+    }
+
+    else return;
+}
+
+/* -------------------------------------------------------------------------------------------*/
+
+void segmentar_aleatoriamente (tipo_imagem_pgm *imagem_entrada, tipo_imagem_ppm *imagem_saida) {
+    tipo_pixel_rgb cor;
+    int linha, coluna;
+    int limite_funcional = (imagem_entrada->linhas + imagem_entrada->colunas)/2;
+    for (int i = 0; i < limite_funcional; i++) {
+        cor.R = rand() % 256;
+        cor.G = rand() % 256;
+        cor.B = rand() % 256;
+        linha = rand() % imagem_entrada->linhas;
+        coluna = rand() % imagem_entrada->colunas;
+        if (!imagem_entrada->pixels[linha][coluna].passei) {
+            imagem_entrada->pixels[linha][coluna].passei = true;
+            testar_vizinhos_recursivamente (imagem_entrada, imagem_saida, &cor, linha, coluna);
+        }
     }
 }
 
-bool usar_recurvidade () {
-    char opcao;
-    printf ("\nDeseja utilizar algoritmo recursivo? [S / N]: ");
-    scanf ("%c", &opcao);
-
-    if (opcao == 'S' || opcao == 's') return true;
-    else if (opcao == 'N' || opcao == 'n') return false;
-    else {
-        printf("Comando invalido! Tente novamente.\n");
-        return usar_recurvidade ();
-    }
-}
+/* -------------------------------------------------------------------------------------------*/
