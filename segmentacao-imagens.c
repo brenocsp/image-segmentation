@@ -15,10 +15,9 @@ void testar_alocacao (void *ponteiro, int tipo){
 /* -------------------------------------------------------------------------------------------*/
 
 FILE *abrir_arquivo (char *nome, char *formato, char *tipo_acesso) {
-    FILE *arquivo = NULL;
     char arquivo_temp [MAX_NOME];
     sprintf(arquivo_temp, "%s%s", nome, formato);
-    arquivo = fopen (arquivo_temp, tipo_acesso);
+    FILE *arquivo = fopen (arquivo_temp, tipo_acesso);
     testar_alocacao (arquivo, ARQUIVO);
     return arquivo;
 }
