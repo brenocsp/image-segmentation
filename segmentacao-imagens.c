@@ -49,10 +49,10 @@ tipo_semente_pai *armazenar_sementes (FILE *arquivo, int *num_sementes) {
     fscanf(arquivo, "%d\n", num_sementes);
     tipo_semente_pai *pai = (tipo_semente_pai*) calloc(*num_sementes, sizeof(tipo_semente_pai));
     testar_alocacao (pai, MEMORIA);
-
-    fscanf(arquivo, "%i\n", &pai[0].limiar);
+    int limiar;
+    fscanf(arquivo, "%d\n", &limiar);
     for (int i = 0; i < *num_sementes; i++) {
-        pai[i].limiar = pai[0].limiar;
+        pai[i].limiar = limiar;
         fscanf(arquivo, "%d, %d <%d, %d, %d>\n", &pai[i].coluna_inicial, &pai[i].linha_inicial, &pai[i].cor.R, &pai[i].cor.G, &pai[i].cor.B);
     }
     fclose (arquivo);
