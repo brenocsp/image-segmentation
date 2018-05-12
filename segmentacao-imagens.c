@@ -269,7 +269,8 @@ void testar_vizinhos_recursivamente (tipo_imagem_pgm *imagem_entrada, tipo_image
 
 void segmentar_aleatoriamente (tipo_imagem_pgm *imagem_entrada, tipo_imagem_ppm *imagem_saida) {
     tipo_pixel_rgb cor;
-    int linha, coluna;
+    int linha;
+    int coluna;
     int limite_funcional = (imagem_entrada->linhas + imagem_entrada->colunas)/2;
     for (int i = 0; i < limite_funcional; i++) {
         cor.R = rand() % 256;
