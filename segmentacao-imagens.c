@@ -50,7 +50,7 @@ tipo_semente_pai *armazenar_sementes (FILE *arquivo, int *num_sementes) {
     tipo_semente_pai *pai = (tipo_semente_pai*) calloc(*num_sementes, sizeof(tipo_semente_pai));
     testar_alocacao (pai, MEMORIA);
 
-    fscanf(arquivo, "%d\n", &pai[0].limiar);
+    fscanf(arquivo, "%i\n", &pai[0].limiar);
     for (int i = 0; i < *num_sementes; i++) {
         pai[i].limiar = pai[0].limiar;
         fscanf(arquivo, "%d, %d <%d, %d, %d>\n", &pai[i].coluna_inicial, &pai[i].linha_inicial, &pai[i].cor.R, &pai[i].cor.G, &pai[i].cor.B);
@@ -268,15 +268,13 @@ void testar_vizinhos_recursivamente (tipo_imagem_pgm *imagem_entrada, tipo_image
 
 void segmentar_aleatoriamente (tipo_imagem_pgm *imagem_entrada, tipo_imagem_ppm *imagem_saida) {
     tipo_pixel_rgb cor;
-    int linha;
-    int coluna;
     int limite_funcional = (imagem_entrada->linhas + imagem_entrada->colunas)/2;
     for (int i = 0; i < limite_funcional; i++) {
         cor.R = rand() % 256;
         cor.G = rand() % 256;
         cor.B = rand() % 256;
-        linha = rand() % imagem_entrada->linhas;
-        coluna = rand() % imagem_entrada->colunas;
+        int linha = rand() % imagem_entrada->linhas;
+        int coluna = rand() % imagem_entrada->colunas;
         if (!imagem_entrada->pixels[linha][coluna].passei) {
             imagem_entrada->pixels[linha][coluna].passei = true;
             testar_vizinhos_recursivamente (imagem_entrada, imagem_saida, &cor, linha, coluna);
