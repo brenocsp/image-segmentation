@@ -20,7 +20,7 @@ Matrícula: 2017074424
 
     1. O programa recebe os nomes dos arquivos sem extenção por meio de passagem de argumentos
     e copia os dados da imagem de entrada (.pgm).
-    
+
     2. Caso exista um arquivo de sementes auxiliares pre-definidas, o programa roda um algorit-
     mo de crescimento de regiões iterativo utilizando filas.
 
@@ -54,23 +54,17 @@ int main (int argc, char **argv) {
     int num_sementes = 0;
     char nome_sementes [MAX_NOME];
     char nome_recursivo [MAX_NOME];
-    FILE *arquivo_imagem = NULL;
-    FILE *arquivo_semente = NULL;
-    tipo_semente_pai *sementes = NULL;
-    tipo_imagem_pgm *imagem_entrada = NULL;
-    tipo_imagem_ppm *imagem_saida_iterativa = NULL;
-    tipo_imagem_ppm *imagem_saida_recursiva = NULL;
 
     /* Leitura da imagem de entrada: */
-    arquivo_imagem = abrir_arquivo (argv[1], ".pgm", "r");
-    imagem_entrada = armazenar_imagem_entrada (arquivo_imagem);
+    FILE *arquivo_imagem = abrir_arquivo (argv[1], ".pgm", "r");
+    tipo_imagem_pgm *imagem_entrada = armazenar_imagem_entrada (arquivo_imagem);
 
     /* Usar arquivo de sementes auxiliares: */
     sprintf(nome_sementes, "%s%s", argv[1], ".txt");
-    arquivo_semente = fopen (nome_sementes, "r");
+    FILE *arquivo_semente = fopen (nome_sementes, "r");
     if (arquivo_semente) {
-        sementes = armazenar_sementes (arquivo_semente, &num_sementes);
-        imagem_saida_iterativa = alocar_matriz_saida (imagem_entrada);
+        tipo_semente_pai *sementes = armazenar_sementes (arquivo_semente, &num_sementes);
+        tipo_imagem_ppm *imagem_saida_iterativa = alocar_matriz_saida (imagem_entrada);
         segmentar_regioes(imagem_entrada, imagem_saida_iterativa, sementes, num_sementes);
         criar_imagem_saida (imagem_saida_iterativa, argv[1]);
         desalocar_imagem_saida (imagem_saida_iterativa);
@@ -82,7 +76,7 @@ int main (int argc, char **argv) {
     }
 
     /* Usar algoritmo de semente aleatorias e recursividade: */
-    imagem_saida_recursiva = alocar_matriz_saida (imagem_entrada);
+    tipo_imagem_ppm *imagem_saida_recursiva = alocar_matriz_saida (imagem_entrada);
     sprintf(nome_recursivo, "%s%s", argv[1], "_recursivo");
     segmentar_aleatoriamente (imagem_entrada, imagem_saida_recursiva);
     criar_imagem_saida (imagem_saida_recursiva, nome_recursivo);

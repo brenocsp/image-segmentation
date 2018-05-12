@@ -47,7 +47,7 @@ tipo_imagem_pgm *armazenar_imagem_entrada (FILE *arquivo) {
 /* -------------------------------------------------------------------------------------------*/
 
 tipo_semente_pai *armazenar_sementes (FILE *arquivo, int *num_sementes) {
-    fscanf(arquivo, "%d\n", &*num_sementes);
+    fscanf(arquivo, "%d\n", num_sementes);
     tipo_semente_pai *pai = (tipo_semente_pai*) calloc(*num_sementes, sizeof(tipo_semente_pai));
     testar_alocacao (pai, MEMORIA);
 
