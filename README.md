@@ -7,10 +7,10 @@ Neste TP, será implementado um algoritmo de segmentação denominado algoritmo 
 ## 2 Implementação
 De maneira geral, existem dois principais algoritmos para gerar as imagens de saída: um interativo com sementes pré-definidas e outro recursivo e com sementes aleatórias.
 
-## 2.1 Programa Principal
+### 2.1 Programa Principal
 O programa possui duas possibilidades de execução correta. **Primeira**: caso exista um arquivo de sementes pré-definidas, serão geradas duas saídas uma que utiliza o arquivo de semente auxiliar e outra saída utilizando sementes aleatórias e o algoritmo recursivo. **Segunda**: caso não exista um arquivo de sementes auxiliares, será gerado somente uma imagem com as sementes aleatórias.
 
-## 2.2 Organização do Código
+### 2.2 Organização do Código
 O código foi dividido em três arquivos, sendo eles:
 
 * main.c: contém as diretrizes principais do programa.
